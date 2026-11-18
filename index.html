@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vom Feld in die Tasse – Interaktiver 3D-Kaffee-Globus, Produktionszyklus &amp; Preisrechner</title>
+  <meta name="description" content="Interaktiver 3D-Globus mit Produktionsstandorten im Kaffeegürtel, Transportwegen und Live-Preisrechner (8,06 €/kg) nach Daten von OroVerde." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero-header">
+      <div>
+        <div class="eyebrow">Politik &amp; Wirtschaft · Interaktiver 3D-Globus &amp; Preis-Simulator</div>
+        <h1>Vom Feld in die Tasse: Globale Kaffee-Standorte, Transportwege &amp; Preisbildung</h1>
+        <p class="hero-subtitle">
+          Zoome auf der 3D-Erde in die wichtigsten Produktionsländer im Kaffeegürtel (23,5° N bis 23,5° S), verfolge die Schifffahrtsrouten nach Europa und passe 10 Variablen entlang des Produktionszyklus an, um ihre Auswirkung auf den Endpreis (Referenz: 8,06 €/kg) zu erleben.
+        </p>
+      </div>
+
+      <div class="preset-toolbar" role="group" aria-label="Reise-Steuerung und Szenarien">
+        <button id="btn-tour" class="tour-btn" onclick="playTour()">▶ Weltreise abspielen</button>
+        <span class="preset-label">Szenario:</span>
+        <button id="preset-statusquo" class="preset-btn active" onclick="applyPreset('statusquo')">Ø Deutschland (8,06 €)</button>
+        <button id="preset-discount" class="preset-btn" onclick="applyPreset('discount')">Billig-Industrie</button>
+        <button id="preset-agroforst" class="preset-btn" onclick="applyPreset('agroforst')">OroVerde Agroforst &amp; Fair</button>
+        <button id="preset-mujeres" class="preset-btn" onclick="applyPreset('mujeres')">Kooperative „Mujeres Dando Pasos“</button>
+      </div>
+    </header>
+
+    <!-- KPI Strip -->
+    <section class="kpi-grid" aria-label="Kennzahlen-Übersicht">
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span>Endpreis (1 kg Röstkaffee)</span>
+          <span id="kpi-price-diff" class="kpi-badge">±0,00 €</span>
+        </div>
+        <div class="kpi-main">
+          <span id="kpi-price-kg" class="kpi-value">8,06 €</span>
+          <span class="kpi-sub">Referenz: 8,06 €</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span>Einkommen Farmer*innen</span>
+          <span id="kpi-farmer-pct" class="kpi-badge">5,1 %</span>
+        </div>
+        <div class="kpi-main">
+          <span id="kpi-farmer-eur" class="kpi-value">0,41 €</span>
+          <span id="kpi-poverty-badge" class="kpi-sub">Armutsrisiko (&lt;3,20 $/Tag)</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span>CO₂-Fußabdruck (pro kg / Tasse)</span>
+          <span id="kpi-co2-cup" class="kpi-badge">0,35 kg/Tasse</span>
+        </div>
+        <div class="kpi-main">
+          <span id="kpi-co2-kg" class="kpi-value">28,53 kg</span>
+          <span class="kpi-sub">CO₂-eq / kg</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span>Virtuelles Wasser &amp; Tasse</span>
+          <span id="kpi-cup-price" class="kpi-badge">0,12 €/Tasse</span>
+        </div>
+        <div class="kpi-main">
+          <span id="kpi-water-cup" class="kpi-value">280 L</span>
+          <span id="kpi-drink-label" class="kpi-sub">Schwarzer Kaffee</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6-Stage Production Cycle Stepper (Drives Globe Zoom & Camera Flight) -->
+    <section class="cycle-section" aria-label="6 Stationen des Produktionszyklus">
+      <div class="cycle-header">
+        <span class="cycle-title">6 Stationen des Produktionszyklus (Klick zoomt die Erde zum jeweiligen Schauplatz)</span>
+        <button id="toggle-all-vars" class="link-btn" onclick="toggleAllVarsView()">Alle 10 Variablen gleichzeitig anzeigen</button>
+      </div>
+      <div id="cycle-stepper" class="cycle-grid"></div>
+    </section>
+
+    <!-- Top Visual Section: Interactive 3D Globe (Left) + Live Price & Profit Distribution (Right) -->
+    <div class="globe-hero-grid">
+      <!-- 3D Earth Globe with Zoom, Locations & Transport Routes -->
+      <section class="globe-card" aria-label="Interaktiver 3D-Globus der Kaffeeproduktion">
+        <div class="globe-toolbar">
+          <div id="location-pills" class="loc-pill-list"></div>
+          <div class="zoom-controls">
+            <button class="zoom-btn" onclick="adjustZoom(1.25)" title="Hineinzoomen">+</button>
+            <button class="zoom-btn" onclick="adjustZoom(0.8)" title="Herauszoomen">−</button>
+            <button class="zoom-btn" onclick="resetGlobeView()" title="Weltübersicht">Welt</button>
+          </div>
+        </div>
+
+        <div class="globe-canvas-wrap">
+          <canvas id="globe-canvas"></canvas>
+          <div id="globe-overlay-card" class="globe-info-overlay"></div>
+        </div>
+      </section>
+
+      <!-- Live Price Breakdown & Value Chain Distribution -->
+      <aside aria-label="Wer verdient wie viel an einem Kilo Kaffee?">
+        <div class="panel-card">
+          <div class="section-heading">
+            <span>Wer verdient wie viel an 1 kg Kaffee?</span>
+            <span style="font-family: monospace; color: var(--text-muted)">Basis: 8,06 €</span>
+          </div>
+
+          <div class="bar-wrap">
+            <div class="bar-label-row">
+              <strong>Deine Konfiguration</strong>
+              <strong id="bar-total-label" style="font-family: monospace">8,06 € / kg</strong>
+            </div>
+            <div id="price-stacked-bar" class="stacked-bar"></div>
+          </div>
+
+          <div class="bar-wrap">
+            <div class="bar-label-row" style="color: var(--text-muted)">
+              <span>OroVerde-Referenz (Status Quo Deutschland)</span>
+              <span style="font-family: monospace">8,06 € / kg</span>
+            </div>
+            <div class="stacked-bar reference">
+              <div class="bar-seg" style="width: 5.09%; background: #2b7a4b" title="Farmer*innen: 0,41 €"></div>
+              <div class="bar-seg" style="width: 3.23%; background: #d97706" title="Händler*innen: 0,26 €"></div>
+              <div class="bar-seg" style="width: 3.60%; background: #0284c7" title="Export: 0,29 €"></div>
+              <div class="bar-seg" style="width: 11.04%; background: #7c2d12" title="Röstereien: 0,89 €"></div>
+              <div class="bar-seg" style="width: 17.25%; background: #b45309" title="Verkauf/Einzelhandel: 1,39 €"></div>
+              <div class="bar-seg" style="width: 27.17%; background: #be123c" title="Deutsche Kaffeesteuer: 2,19 €"></div>
+              <div class="bar-seg" style="width: 32.62%; background: #78716c" title="Rohkaffee-Basis, Aufbereitung &amp; MwSt.: 2,63 €"></div>
+            </div>
+          </div>
+
+          <div id="actor-breakdown-list" class="actor-list"></div>
+        </div>
+
+        <div class="panel-card" style="margin-bottom: 0;">
+          <div class="section-heading">
+            <span>Ökologische &amp; Soziale Bilanz</span>
+          </div>
+          <div id="eco-breakdown-list"></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Interactive Controls: Stage Context + Variable Controls (Left) & Price Drivers Delta (Right) -->
+    <div class="workspace-grid">
+      <section aria-label="Stufendetails und Variablen-Anpassung">
+        <div id="stage-info-box" class="panel-card"></div>
+        <div id="controls-container"></div>
+      </section>
+
+      <aside aria-label="Preistreiber-Bilanz">
+        <div class="panel-card">
+          <div class="section-heading">
+            <span>Preistreiber-Bilanz (Abweichung zu 8,06 €)</span>
+            <button class="link-btn" onclick="applyPreset('statusquo')">Zurücksetzen</button>
+          </div>
+          <div id="delta-drivers-list"></div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="source-footer">
+      <span>Datenquelle: <a href="https://www.regenwald-schuetzen.org/handeln/nachhaltige-ernaehrung/kaffee" target="_blank" rel="noopener noreferrer">OroVerde – Die Tropenwaldstiftung: Kaffee – Welche Folgen hat die tägliche Tasse für den Regenwald?</a></span>
+      <span>169 L Pro-Kopf-Konsum/Jahr in DE · 280 L Wasser &amp; 0,35 kg CO₂-eq pro Tasse Schwarz</span>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
